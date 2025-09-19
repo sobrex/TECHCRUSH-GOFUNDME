@@ -1,0 +1,58 @@
+// Used for raising funds
+// allow fund
+// withdraw
+
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.30;
+
+contract goFundMe {
+    address public owner;
+    uint256 public amount;
+    address public latestFunder;
+    address[] public Funders;
+    mapping(address => uint256) public FundersToAmt;
+
+    uint256 public constant MIN_DONATION = 0.2 ether;
+
+    event Funded(address indexed funder, uint256 amount);
+    event Withdrawn(address indexed to, uint256 amount);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function fundMe() public payable {
+        require(msg.value >= MIN_DONATION, "this must be more than or equals to .2 ether");
+        amount = msg.value;
+        FundersToAmt[msg.sender] = FundersToAmt[msg.sender] + msg.value;
+        if (FundersToAmt[msg.sender] == msg.value) {
+            Funders.push(msg.sender);
+        }
+        latestFunder = msg.sender;
+        emit Funded(msg.sender, msg.value);
+    }
+
+    function withdrawToMe(uint256 _amount) public onlyOwner {
+        require(address(this).balance >= _amount, "Insufficient contract balance");
+        (bool success,) = payable(msg.sender).call{value: _amount}("");
+        require(success == true, "Transfer failed");
+        emit Withdrawn(msg.sender, _amount);
+    }
+
+    function getFunders() public view returns (address[] memory) {
+        return Funders;
+    }
+
+    function getAmountInAddress() public view returns (uint256) {
+        return msg.sender.balance;
+    }
+
+    function getContractBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
+}
